@@ -1,0 +1,5 @@
+/* звуки (main.js): вкладка «Настройки» → «Звуки» */
+.sounds-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.sounds-parts { padding-left: 24px; transition: opacity .15s; }
+.sounds-parts input[type="range"] { width: 160px; }
+.sounds-tests { display: flex; gap: 8px; padding: 6px 0; }
