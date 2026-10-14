@@ -56,3 +56,37 @@ test("повтор того же снимка — тишина", () => {
   const s = snap(11, [sess("a", { last_out: 11 })]);
   assert.deepEqual(run(snap(10, [sess("a")]), s, s), [null, "message", null]);
 });
+
+import { gate, react, REPEAT_GAP, MUTE_FOR } from "../events.js";
+
+test("тот же звук — не чаще раза в 15 минут, другой звучит", () => {
+  let g = null, r;
+  r = gate(g, "message", 0, false); assert.equal(r.sound, true); g = r.next;
+  r = gate(g, "message", 60_000, false); assert.equal(r.sound, false); g = r.next;
+  r = gate(g, "ask", 61_000, false); assert.equal(r.sound, true); g = r.next;
+  r = gate(g, "message", REPEAT_GAP + 1, false); assert.equal(r.sound, true);
+});
+
+test("три сигнала без отклика за 15 минут — звук глохнет сам; отклик обнуляет счёт", () => {
+  let g = null, r;
+  r = gate(g, "message", 0, true); g = r.next;
+  r = gate(g, "ask", 1000, true); g = r.next; assert.equal(r.autoMute, false);
+  r = gate(g, "message", 2000, true); assert.equal(r.autoMute, true); assert.equal(r.sound, false);
+  g = null;
+  r = gate(g, "message", 0, true); g = r.next;
+  r = gate(g, "ask", 1000, true); g = react(r.next);
+  r = gate(g, "message", 2000, true); assert.equal(r.autoMute, false);
+  assert.equal(MUTE_FOR, 60 * 60 * 1000);
+});
+
+test("сигналы без отклика старше 15 минут не копятся", () => {
+  let g = null, r;
+  r = gate(g, "message", 0, true); g = r.next;
+  r = gate(g, "ask", 1000, true); g = r.next;
+  r = gate(g, "message", REPEAT_GAP + 5000, true); assert.equal(r.autoMute, false);
+});
+
+test("итог владельцу считается по owner_out: ответ сессии хабу не звучит", () => {
+  const a = (o, l) => ({ name: "a", state: "idle", owner_out: o, last_out: l, pending: [], requests: [] });
+  assert.deepEqual(run(snap(10, [a(5, 5)]), snap(12, [a(5, 12)]), snap(14, [a(14, 14)])), [null, null, "message"]);
+});
