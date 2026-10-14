@@ -110,7 +110,7 @@ function settings(root, hub) {
     mute.replaceChildren();
     mute.hidden = until <= Date.now();
     if (mute.hidden) return;
-    const at = new Date(until).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const at = new Date(until).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
     const b = hub.el("button", "btn", "Включить"); b.type = "button";
     b.addEventListener("click", () => { keep(":muted", 0); reacted(); drawMute(); });
     mute.append(hub.el("span", null, `Заглушено до ${at}: три сигнала подряд остались без ответа`), b);
