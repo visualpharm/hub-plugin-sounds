@@ -19,13 +19,25 @@ addEventListener("focus", reacted);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && document.hasFocus()) reacted(); });
 
 let ctx = null;
-function audio() {
+function make() {
   if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
-  if (ctx.state === "suspended") ctx.resume().catch(() => {});
   return ctx;
 }
+function audio() {
+  if (make()?.state === "suspended") ctx.resume().catch(() => {});
+  return ctx;
+}
+// контекст — заранее, в простое после загрузки (молчит, пока не было жеста): создать его — поднять аудиоустройство,
+// 0,2–0,6 с, и в обработчике первого касания это задерживало ответ страницы (замер Lighthouse 26.10: INP 300–700 мс).
+// Жесту остаётся resume() — дёшево, и Safari пускает звук только из жеста
+(window.requestIdleCallback || ((f) => setTimeout(f, 1000)))(() => { if (prefs().on) make(); }, { timeout: 5000 });
 // первый жест на странице — оживить звук; пока не ожил, ловим каждый жест
-const unlock = () => { if (audio()?.state === "running") ["pointerdown", "keydown"].forEach((e) => removeEventListener(e, unlock, true)); };
+const off = () => ["pointerdown", "keydown"].forEach((e) => removeEventListener(e, unlock, true));
+const unlock = () => {
+  const ac = make();
+  if (!ac || ac.state === "running") return off();
+  ac.resume().then(() => { if (ac.state === "running") off(); }, () => {});
+};
 ["pointerdown", "keydown"].forEach((e) => addEventListener(e, unlock, true));
 
 // один тон: частота (или скольжение from→to), огибающая — быстрый вход и мягкое затухание, через фильтр низких
